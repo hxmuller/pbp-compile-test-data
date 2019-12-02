@@ -1,0 +1,305 @@
+PURPOSE
+========================================================================
+
+Kernel compilation is generally a good stress test of a system. The
+primary question to be answered is:
+
+1. Can the RK3399 SoC handle the rigor of kernel compilation?
+
+Additional questions I wished to answer were:
+
+2. Do the thermal characteristics of the SoC remain in the recommended
+   range throughout kernel compilation?
+
+Based on review of the datasheet, it appears the core frequencies are
+throttled when 80 degrees Celsius is exceeded.
+
+3. Do the GPU and SoC temperatures differ significantly?
+
+My assumption is that since both are on the same chip, that they will
+reach equilibrium under constant load.
+
+4. Does the system, under heavy load, discharge the battery while
+   attached to the power supply?
+
+This claim was made in the Pine64 Pinebook Pro forums:
+
+  https://forum.pine64.org/showthread.php?tid=8240&pid=52379#pid52379
+
+
+MATERIALS
+========================================================================
+
+During this test, the following equipment and software was used:
+
+1. Pinebook Pro (First batch, ISO keyboard)
+
+   a. Factory installed Debian desktop (/usr/share/myver = 1.4) on eMMC
+
+   b. Touchpad disabled through Fn-F7
+
+2. AC Adapter (5V 3A output, provided with Pinebook Pro)
+
+   a. Laptop plugged in throughout tests
+
+3. Logitech M187 Mini Wireless Mouse
+
+   a. Plugged into USB 2.0 port
+
+4. Seagate Backup Plus Slim Portable Drive 2TB
+
+   a. Plugged into USB 3.0 port
+
+5. Rockchip kernel sources from:
+
+   https://github.com/rockchip-linux/kernel
+
+6. mrfixit2001 Rockchip kernel sources from:
+
+   https://github.com/mrfixit2001/rockchip-kernel
+
+
+PROCEDURES
+========================================================================
+
+This is a summary of the steps taken to conduct the tests. A detailed
+account of the steps taken can be found in:
+
+  compiling-kernel-on-pinebook.txt
+
+1. Created systemd-nspawn container on portable drive to isolate the
+   compilation from the system and to restrict writes to that drive to
+   limit writing to eMMC.
+
+2. Installed kernel compilation software requirements in container:
+
+   - build-essential
+   - git
+   - python
+   - bc
+   - libssl-dev
+
+3. Downloaded kernel sources into container.
+
+4. Wrote bash script to perform kernel compilation and collect data
+   during test.
+
+5. Compiled kernel starting with -j1 and increasing by steps of 1 to
+   -j6 through each successive test. Data was collected through each
+   run.
+
+6. Wrote awk script to summarize collected data.
+
+
+DATA
+========================================================================
+
+Testing occurred on November 18, 2019 roughly between 5:45 PM EST and
+10:00 PM EST.
+
+The ambient room temperature during testing was 22 degrees Celsius.
+
+Raw data for each run was collected separately with the exception of the
+first run which not only failed during compilation, but an error in the
+script resulted in no data being collected. The collected raw data is in
+separate log files:
+
+  compile-test_{2,3,4,5,6,7}.log
+
+
+VARIABLES FOR MEASUREMENT
+------------------------------------------------------------------------
+
+T: (soc-thermal) /sys/class/thermal/thermal_zone0/temp
+   (gpu-thermal) /sys/class/thermal/thermal_zone1/temp
+
+F: /sys/devices/system/cpu/cpu{0,5}/cpufreq/cpuinfo_cur_freq
+
+V: /sys/class/power_supply/rk-bat/voltage_now
+
+
+RUN  KERNEL/NOTES                               GOVERNOR   CORES
+------------------------------------------------------------------------
+
+     All kernel sources retrieved on same day of test,
+     18 NOV 2019
+
+1.   rockchip-kernel                            ondemand   -j1
+
+     - fails after 31m 45s
+     - dhd_linux.c 9454
+       strncat(if_name, "%d", 2);
+
+2.   mrfixit/rockchip-kernel                    ondemand   -j1
+
+     real  53m 30s
+     user  45m 54s
+      sys   5m 8s
+
+     2 terminals open, remaining tests only 1
+     nothing active in second terminal
+
+3.   mrfixit/rockchip-kernel                    ondemand   -j2
+
+     real  29m 43s
+     user  51m  0s
+      sys   5m 45s
+
+4.   mrfixit/rockchip-kernel                    ondemand   -j3
+
+     real  23m 40s
+     user  60m 12s
+      sys   6m 35s
+
+5.   mrfixit/rockchip-kernel                    ondemand   -j4
+
+     real  21m  3s
+     user  70m  6s
+      sys   7m 21s
+
+6.   mrfixit/rockchip-kernel                    ondemand   -j5
+
+     real  19m 29s
+     user  80m 20s
+      sys   8m  8s
+
+7.   mrfixit/rockchip-kernel                    ondemand   -j6
+
+     real  18m 47s
+     user  89m 32s
+      sys   8m 42s
+
+
+START/END TIMES EXTRACTED FROM TEST LOGS FOR SYSLOG REVIEW
+------------------------------------------------------------------------
+
+2. 17:48:28  18:41:57 (53m 29s)
+3. 18:55:30  19:25:12 (29m 42s)
+4. 19:41:48  20:05:27 (23m 39s)
+5. 20:24:13  20:45:14 (21m  1s)
+6. 21:02:51  21:22:18 (19m 27s)
+7. 21:36:14  21:55:01 (18m 47s)
+
+
+SUMMARY OF RUN #2 DATA (compile-test_2.log)
+------------------------------------------------------------------------
+Tgpu_begin: 40.0  Tsoc_begin: 43.3  Tdiff_begin:  3.3  Vbat_begin: 4.3
+  Tgpu_end: 43.9    Tsoc_end: 43.3    Tdiff_end:  0.6    Vbat_end: 4.1
+   Tgpu_hi: 46.2     Tsoc_hi: 52.8     Tdiff_hi:  7.8     Vbat_hi: 4.4
+   Tgpu_lo: 39.4     Tsoc_lo: 40.0     Tdiff_lo:  0.0     Vbat_lo: 4.0
+  Tgpu_avg: 44.5    Tsoc_avg: 47.8    Tdiff_avg:  3.3    Vbat_avg: 4.1
+
+
+SUMMARY OF RUN #3 DATA (compile-test_3.log)
+------------------------------------------------------------------------
+Tgpu_begin: 42.2  Tsoc_begin: 42.2  Tdiff_begin:  0.0  Vbat_begin: 4.2
+  Tgpu_end: 52.2    Tsoc_end: 52.8    Tdiff_end:  0.6    Vbat_end: 4.0
+   Tgpu_hi: 57.2     Tsoc_hi: 67.8     Tdiff_hi: 10.6     Vbat_hi: 4.3
+   Tgpu_lo: 42.2     Tsoc_lo: 42.2     Tdiff_lo:  0.0     Vbat_lo: 3.9
+  Tgpu_avg: 54.6    Tsoc_avg: 61.8    Tdiff_avg:  7.2    Vbat_avg: 4.2
+
+
+SUMMARY OF RUN #4 DATA (compile-test_4.log)
+------------------------------------------------------------------------
+Tgpu_begin: 42.2  Tsoc_begin: 42.2  Tdiff_begin:  0.0  Vbat_begin: 4.2
+  Tgpu_end: 52.2    Tsoc_end: 56.7    Tdiff_end:  4.4    Vbat_end: 4.2
+   Tgpu_hi: 60.0     Tsoc_hi: 71.1     Tdiff_hi: 12.2     Vbat_hi: 4.3
+   Tgpu_lo: 42.2     Tsoc_lo: 42.2     Tdiff_lo:  0.0     Vbat_lo: 3.9
+  Tgpu_avg: 56.9    Tsoc_avg: 64.8    Tdiff_avg:  7.9    Vbat_avg: 4.2
+
+
+SUMMARY OF RUN #5 DATA (compile-test_5.log)
+------------------------------------------------------------------------
+Tgpu_begin: 41.7  Tsoc_begin: 42.8  Tdiff_begin:  1.1  Vbat_begin: 4.2
+  Tgpu_end: 52.2    Tsoc_end: 52.2    Tdiff_end:  0.0    Vbat_end: 4.2
+   Tgpu_hi: 61.2     Tsoc_hi: 71.1     Tdiff_hi: 11.1     Vbat_hi: 4.3
+   Tgpu_lo: 41.7     Tsoc_lo: 42.2     Tdiff_lo:  0.0     Vbat_lo: 3.9
+  Tgpu_avg: 58.0    Tsoc_avg: 66.0    Tdiff_avg:  7.9    Vbat_avg: 4.2
+
+
+SUMMARY OF RUN #6 DATA (compile-test_6.log)
+------------------------------------------------------------------------
+Tgpu_begin: 42.2  Tsoc_begin: 42.2  Tdiff_begin:  0.0  Vbat_begin: 4.2
+  Tgpu_end: 55.6    Tsoc_end: 55.6    Tdiff_end:  0.0    Vbat_end: 4.2
+   Tgpu_hi: 63.8     Tsoc_hi: 73.3     Tdiff_hi: 10.8     Vbat_hi: 4.2
+   Tgpu_lo: 42.2     Tsoc_lo: 42.2     Tdiff_lo:  0.0     Vbat_lo: 4.0
+  Tgpu_avg: 59.6    Tsoc_avg: 67.6    Tdiff_avg:  8.0    Vbat_avg: 4.2
+
+
+SUMMARY OF RUN #7 DATA (compile-test_7.log)
+------------------------------------------------------------------------
+Tgpu_begin: 42.8  Tsoc_begin: 43.3  Tdiff_begin:  0.6  Vbat_begin: 4.2
+  Tgpu_end: 55.0    Tsoc_end: 55.6    Tdiff_end:  0.6    Vbat_end: 4.2
+   Tgpu_hi: 64.4     Tsoc_hi: 73.9     Tdiff_hi: 11.1     Vbat_hi: 4.2
+   Tgpu_lo: 42.8     Tsoc_lo: 43.3     Tdiff_lo:  0.0     Vbat_lo: 4.1
+  Tgpu_avg: 60.4    Tsoc_avg: 68.3    Tdiff_avg:  8.0    Vbat_avg: 4.2
+
+
+ANALYSIS
+========================================================================
+
+The maximum temperature value of the GPU during all runs was 64.4
+degrees Celsius, while that of the SoC was 73.9. These maximums were
+recorded during run #7 while compiling with -j6. According to the RK3399
+datasheet the SoC begins throttling at 80 degrees Celsius.
+
+The average temperature differential between gpu-thermal and soc-thermal
+is calculated from the average temperatures of both the average
+temperature values of both gpu-thermal and soc-thermal during each run.
+The calculation is abs(Tgpu_avg - Tsoc_avg). For all runs, the minimum
+average difference between Tgpu and Tsoc is 3.3 degrees Celsius, while
+the maximum average difference between the two is 8.0 degrees Celsius.
+
+The average voltage_now of the battery during the six runs that produced
+data was 4.2 V with the exception of run #2 which calculated an average
+voltage_now (Tbat_avg) of 4.1V. Significant discharge of the battery was
+not observed when comparing the Vbat_begin and Vbat_end for each run
+along with Vbat_avg. There was a marginally larger difference between
+Vbat_begin and Vbat_end for the second and third runs. Run #2 had an
+additional inactive terminal open, it is unknown what may have
+contributed to that larger difference in Run #3.
+
+
+DISCUSSION
+========================================================================
+
+So can the RK3399 SoC in the Pinebook Pro platform handle the rigor of
+kernel compilation? The Pinebook Pro under test experienced no reboots,
+freezes, or lockups during any of the test runs, including compilation
+with -j6 on the last run. The Pinebook Pro can handle the rigors of
+kernel compilation.
+
+Data collected during all test runs shows definitively that even when
+compiling the kernel with -j6, the SoC and GPU remain within the
+recommended temperature range throughout compilation. This additionally
+strengthens the argument that the Pinebook Pro can handle the rigors of
+kernel compilation.
+
+The data also showed that there is normally a clear difference between
+the temperature of the GPU and the SoC, and that they do not appear to
+reach equilibrium even while the SoC experiences heavy load while
+compiling the kernel with -j6. My beginning hypothesis was that it would
+not matter whether gpu-thermal or soc-thermal was measured because
+during high load they would come to equilibrium. This was not what the
+test results showed. The RK3399 and Pinebook Pro provide enough passive
+heat dissipation that thermal equilibrium between GPU and SoC did not
+occur at higher temperatures.
+
+The batteries reported voltage_now was collected during all tests to
+look for a constant drop in voltage which would indicate that the
+Pinebook Pro with its provided DC adapter was drawing more power under
+high load than the system could provide while plugged in. It is also
+important to note that this compilation occurred on and while an
+external USB hard drive was attached and drawing power from the
+Pinebook Pro. Minor fluctuations were observed but the Pinebook Pro was
+able to compile a kernel with -j6 and not significantly discharge the
+battery while under high load.
+
+
+CONCLUSION
+========================================================================
+
+It was found that the Pinebook Pro is fully capable of compiling a
+Linux kernel, which is commonly used by some to stress test a new system
+to determine if there are any potential hardware issues. This indicates
+That the Pinebook Pro is capable of real work, and not simply a toy.

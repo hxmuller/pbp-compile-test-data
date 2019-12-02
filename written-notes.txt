@@ -1,0 +1,84 @@
+VARIABLES FOR MEASUREMENT
+------------------------------------------------------------
+
+T: (soc-thermal) /sys/class/thermal/thermal_zone0/temp
+   (gpu-thermal) /sys/class/thermal/thermal_zone1/temp
+
+F: /sys/devices/system/cpu/cpu{0,5}/cpufreq/cpuinfo_cur_freq
+
+V: /sys/class/power_supply/rk-bat/voltage_now
+
+
+DEBIAN PACKAGES REQUIRED FOR KERNEL COMPILATION
+----------------------------------------------------------------
+
+  build-essential
+  git
+  python
+  bc
+  libssl-dev
+
+  NOTE: To manually configure kernel libncurses5-dev is required
+
+
+RUN  KERNEL/NOTES                               GOVERNOR  CORES
+----------------------------------------------------------------
+
+     All kernel sources retrieved on same day of test,
+     18 NOV 2019
+
+1.   rockchip-kernel                            ondemand   -j1
+
+     - fails after 31m 45s
+     - dhd_linux.c 9454
+       strncat(if_name, "%d", 2);
+
+2.   mrfixit/rockchip-kernel                    ondemand   -j1
+
+     real  53m 30s
+     user  45m 54s
+      sys   5m 8s
+
+     2 terminals open, remaining tests only 1
+     nothing active in second terminal
+
+3.   mrfixit/rockchip-kernel                    ondemand   -j2
+
+     real  29m 43s
+     user  51m  0s
+      sys   5m 45s
+
+4.   mrfixit/rockchip-kernel                    ondemand   -j3
+
+     real  23m 40s
+     user  60m 12s
+      sys   6m 35s
+
+5.   mrfixit/rockchip-kernel                    ondemand   -j4
+
+     real  21m  3s
+     user  70m  6s
+      sys   7m 21s
+
+6.   mrfixit/rockchip-kernel                    ondemand   -j5
+
+     real  19m 29s
+     user  80m 20s
+      sys   8m  8s
+
+7.   mrfixit/rockchip-kernel                    ondemand   -j6
+
+     real  18m 47s
+     user  89m 32s
+      sys   8m 42s
+
+
+START/END TIMES EXTRACTED FROM TEST LOGS FOR SYSLOG REVIEW
+----------------------------------------------------------
+
+2. 17:48:28  18:41:57 (53m 29s)
+3. 18:55:30  19:25:12 (29m 42s)
+4. 19:41:48  20:05:27 (23m 39s)
+5. 20:24:13  20:45:14 (21m  1s)
+6. 21:02:51  21:22:18 (19m 27s)
+7. 21:36:14  21:55:01 (18m 47s)
